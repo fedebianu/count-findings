@@ -1,4 +1,3 @@
-import asyncio
 import config
 from count_core import CountCore
 
@@ -8,7 +7,7 @@ def main():
         sr=config.SR,
         domains=config.DOMAINS
     )
-    asyncio.run(analyzer.analyze())
+    analyzer.analyze()
 
 if __name__ == '__main__':
     main()
