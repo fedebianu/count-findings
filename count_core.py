@@ -4,10 +4,11 @@ from collections import defaultdict
 SEVERITY_LABELS = ['Critical', 'High', 'Medium', 'Low', 'Gas', 'Informational']
 
 class CountCore:
-    def __init__(self, token, sr, domains, on_progress=None):
+    def __init__(self, token, sr, year, domains, on_progress=None):
         self.token = token
         self.sr = sr
         self.domains = domains if isinstance(domains, list) else domains.split('\n')
+        self.year = year
         self.on_progress = on_progress or print
         
         # Data tracking
@@ -22,15 +23,26 @@ class CountCore:
         self.on_progress(f"Searching repositories in {domain}...")
         
         try:
-            query = f'author:{self.sr} org:{domain} is:issue'
+            if not self.sr:
+                query = f'org:{domain} is:issue'
+            else:
+                query = f'author:{self.sr} org:{domain} is:issue'
+
+            if self.year:
+                query += f' created:{self.year}-01-01..{self.year}-12-31'
+                
+            self.on_progress(f"Using query: {query}")    
             issues = github.search_issues(query)
+            
             for issue in issues:
                 repo_name = issue.repository.full_name
                 repos.add(repo_name)
                 self.domain_mapping[repo_name] = domain
+
         except Exception as e:
             self.on_progress(f"Error searching in {domain}: {str(e)}")
-        
+    
+        self.on_progress(f"Found {len(repos)} repositories in {domain}")
         return repos
 
     def process_repository(self, github, repo_name):
@@ -44,7 +56,7 @@ class CountCore:
                 page = issues_list.get_page(i)
                 page.reverse()
                 for issue in page:
-                    if issue.user.login != self.sr:
+                    if self.sr and issue.user.login != self.sr:
                         continue
                         
                     if issue.pull_request is None:
@@ -67,9 +79,18 @@ class CountCore:
 
     def write_report(self):
         with open("report.md", "w") as f:
-            # Title with SR name
-            f.write(f"# {self.sr} findings breakdown\n\n")
+            # Title
+            if self.sr:
+                title = f"# {self.sr} findings breakdown"
+            else:
+                title = "# Org findings breakdown"
+                
+            if self.year:
+                title += f" ({self.year})"
+                
+            f.write(f"{title}\n\n")
             
+            # Rest of the code remains the same
             # Audits by domain
             f.write("## Audits by domain\n")
             f.write("| Domain | Number of Audits |\n")
@@ -121,7 +142,10 @@ class CountCore:
 
     def analyze(self):
         self.is_running = True
-        self.on_progress("Starting analysis...")
+        if self.sr:
+            self.on_progress("Starting analysis for {self.sr}...")
+        else:
+            self.on_progress("Starting analysis...")
         
         # Reset counters
         self.total_counts.clear()

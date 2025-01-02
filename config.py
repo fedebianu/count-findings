@@ -7,7 +7,6 @@ check the "repo" option: full control of private repositories.
 """
 
 TOKEN = ""
-
 SR=""
-
-DOMAINS = [""]
+YEAR="2024"
+DOMAINS = ["yAudit"]

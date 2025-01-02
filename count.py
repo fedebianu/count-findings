@@ -5,6 +5,7 @@ def main():
     analyzer = CountCore(
         token=config.TOKEN,
         sr=config.SR,
+        year=config.YEAR,
         domains=config.DOMAINS
     )
     analyzer.analyze()
